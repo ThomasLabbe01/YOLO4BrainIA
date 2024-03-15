@@ -683,7 +683,6 @@ if __name__ == "__main__":
         continue
         sample(dataset_folder, 1000)[1]
         
-
     # Step 5 : get background images
     background_images_bool = False
     if background_images_bool:
