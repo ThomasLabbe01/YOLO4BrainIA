@@ -15,6 +15,24 @@ def load_yaml_file(file_path):
             return None
 
 
+def prepare_states(final_dict):
+    state_list = ["No State"]
+    final_dict["states"] = {}
+    for item in state_list:
+        final_dict["states"][item] = {}
+    return final_dict
+
+
+def hex_to_rgb(hex_color):
+    # Remove '#' if present
+    hex_color = hex_color.lstrip('#')
+    # Convert hexadecimal to decimal
+    red = int(hex_color[0:2], 16)
+    green = int(hex_color[2:4], 16)
+    blue = int(hex_color[4:6], 16)
+    return red, green, blue
+
+
 def prepare_colors(final_dict, classes):
     num_classes = len(classes)
     color_list, fade_color_list = generate_color_list(num_classes)
@@ -27,12 +45,6 @@ def prepare_colors(final_dict, classes):
         final_dict["classesFaded"][temp_class_type] = fade_color_list[class_index]
     return final_dict
 
-def prepare_states(final_dict):
-    state_list = ["No State"]
-    final_dict["states"] = {}
-    for item in state_list:
-        final_dict["states"][item] = {}
-    return final_dict
 
 def generate_color_list(num_colors):
     # Define constant saturation and value (brightness)
@@ -66,6 +78,7 @@ def generate_color_list(num_colors):
 
     return color_list, fade_color_list
 
+
 def write_config_json_file(final_dict, directory, frame_name):
 
     file_name = os.path.splitext(frame_name)[0]
@@ -77,6 +90,15 @@ def write_config_json_file(final_dict, directory, frame_name):
         print("Config File was created with success")
     except:
         print("ERROR CREATING CONFIG FILE")
+
+
+def split_path(path):
+    extension = os.path.splitext(path)[1]
+    base_name = os.path.basename(path)
+    frame_name = os.path.splitext(base_name)[0]
+    directory = os.path.dirname(path)
+    return extension, base_name, frame_name, directory
+
 
 def create_folder_structure(fileName, workspacePath):
     file_path = os.path.join(workspacePath, fileName)
@@ -110,32 +132,17 @@ def create_folder_structure(fileName, workspacePath):
     createDir(valid_labels_path)
     return file_path, unlabelled_path, labelled_path
 
+
 def createDir(path):
     if not os.path.exists(path):
         os.makedirs(path)
-
-def resize_frame_with_aspect_ratio(frame, target_size):
-    height, width, _ = frame.shape
-    aspect_ratio = width / float(height)
-
-    if width > target_size or height > target_size:
-        if width > height:
-            new_width = target_size
-            new_height = int(target_size / aspect_ratio)
-        else:
-            new_height = target_size
-            new_width = int(target_size * aspect_ratio)
-
-        resized_frame = cv2.resize(frame, (new_width, new_height))
-        return resized_frame
-    else:
-        return frame
 
 
 def format_time(seconds):
     hours, seconds = divmod(seconds, 3600)
     minutes, seconds = divmod(seconds, 60)
     return f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+
 
 def print_progress_bar(start_time, iteration, total, bar_length=50):
     progress = iteration / total
@@ -150,5 +157,3 @@ def print_progress_bar(start_time, iteration, total, bar_length=50):
         progress_bar += f" - {format_time(estimated_remaining_time)} remaining"
 
     print("\r" + progress_bar, end="")
-
-

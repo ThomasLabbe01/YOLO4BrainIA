@@ -3,16 +3,10 @@ import websockets
 import websockets.exceptions
 import json
 import os
-
+from data_config import *
 from Predictor import Predictor
 from extraction import FrameExtractor
 
-def split_path(path):
-    extension = os.path.splitext(path)[1]
-    base_name = os.path.basename(path)
-    frame_name = os.path.splitext(base_name)[0]
-    directory = os.path.dirname(path)
-    return extension, base_name, frame_name, directory
 
 class Server:
     def __init__(self):
