@@ -1,5 +1,8 @@
 # YOLO4BrainIA
 
+!!DONT FORGET THE weights FOLDER REQUIRED IN THE MAIN DIRECTORY!!
+
+
 python -m pip install fiftyone
 
 python -m pip install opencv-python
