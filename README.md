@@ -2,13 +2,30 @@
 
 !!DONT FORGET THE weights FOLDER REQUIRED IN THE MAIN DIRECTORY!!
 
+STEPS:
 
-python -m pip install fiftyone
+1. Install Anaconda https://www.anaconda.com/download
+2. Open anaconda prompt
 
-python -m pip install opencv-python
+    
+    press Windows keys (search)
+    write anaconda3
+    press Enter
 
-python -m pip install torch==2.2.1+cu121 torchvision==0.17.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+4. Enter:
 
-python -m pip install ultralytics
+   
+    create --name ENVS_NAME
+    conda install python
 
-python -m pip install websockets
+
+5. Copy - Paste the following list
+
+
+    python -m pip install fiftyone
+    python -m pip install opencv-python
+    python -m pip install torch==2.2.1+cu121 torchvision==0.17.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+    python -m pip install ultralytics
+    python -m pip install websockets
+
+6. Run BrainIA/python_server.py
