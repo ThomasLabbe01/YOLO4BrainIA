@@ -24,9 +24,10 @@ class Predictor:
         self.final_dict = {"classes": {}}
         self.final_dict = prepare_colors(self.final_dict, self.classes)
         self.final_dict = prepare_states(self.final_dict)
+        self.final_dict = order_classes(self.final_dict)
 
         #SETTINGS
-        self.conf_threshold = 0.05
+        self.CONF_THRESHOLD = 0.05
         self.MAX_NUMBER_OF_FRAME = 50
         self.USE_FULL_LENGTH = False
         self.USE_MULTIPROCESSING = True
@@ -37,8 +38,8 @@ class Predictor:
         self.time2_list = []
         self.time3_list = []
 
-    def predict(self, img, output_dir='output'):
-        model_tensor = self.model_custom.predict(source=img, conf=self.conf_threshold,
+    def predict(self, img):
+        model_tensor = self.model_custom.predict(source=img, conf=self.CONF_THRESHOLD,
                                                  save=False, save_txt=False, verbose=False)
         bbox_coords_list = model_tensor[0].boxes.xyxy.cpu().numpy()
         bbox_names = model_tensor[0].boxes.cls.cpu().numpy()
@@ -62,10 +63,10 @@ class Predictor:
                 obj_id = len(predictions[class_label])
             else:
                 obj_id = 0
-
-            predictions[class_label][obj_id] = {"bbox": str(int_list), "confidence": float(confidence)}
+            predictions[class_label][obj_id] = {"bbox": str(int_list), "confidence": float(confidence), "source": "AI"}
 
         ## TO DISPLAY IMAGES
+        #     output_dir = 'output'
         #     object_color = hex_to_rgb(self.final_dict["classes"][class_label])
         #     x_min, y_min, x_max, y_max = bbox_coords
         #     cv2.rectangle(img, (int(x_min), int(y_min)), (int(x_max), int(y_max)), object_color, 2)
@@ -90,7 +91,7 @@ class Predictor:
         print("ORIGINAL VIDEO HAS", video_length, "FRAMES")
         print("EXTRACTING", self.MAX_NUMBER_OF_FRAME, "FRAMES")
         self.final_dict["numOfFrames"] = self.MAX_NUMBER_OF_FRAME
-        write_config_json_file(self.final_dict, workspacePath, fileName)
+        self.write_config_json_file(workspacePath, fileName)
 
         if self.USE_MULTIPROCESSING:
             AVAILABLE_CPU = os.cpu_count() - 1
@@ -98,6 +99,7 @@ class Predictor:
             pool = Pool(processes=AVAILABLE_CPU)
             print("NUMBER OF PROCESS", AVAILABLE_CPU)
         else:
+            pool = None
             print("NUMBER OF PROCESS 1 - NO MULTIPROCESSING")
 
         self.start_time = time.time()
@@ -109,64 +111,28 @@ class Predictor:
             if not success:
                 break
 
-            #TODO CHECK IF FRAME RESIZE IS NECESSARY
-            frame_filename = f"frame{frame_count}.webp"
-            frame_path_1 = os.path.join(unlabelled_path, frame_filename)
-            frame_path_2 = os.path.join(labelled_path, frame_filename)
-            # if os.path.exists(frame_path_1) or os.path.exists(frame_path_2):
-            #     print(f"Frame {frame_count} already exists in one of the paths. Skipping...")
-            #     frame_count += 1
-            #     continue
+            # TODO CHECK IF FRAME RESIZE IS NECESSARY
+            # Verify that the image is in the unlabelled or labelled folder
+            frame_count, frame_paths = self.verify_path(frame_count,unlabelled_path, labelled_path)
 
-            # Write the frame local storage using MULTIPROCESSING or SINGLEPROCESSING
-            if self.USE_MULTIPROCESSING:
-                remaining_frames -= 1
-                frame_list.append([frame_count, frame])
-                if len(frame_list) == frame_batch_size:
-                    start = time.time()
-                    # Process a batch of frames using multiprocessing
-                    batch_args = [(data[1], os.path.join(unlabelled_path, f"frame{data[0]}.webp"), 75) for data in
-                                  frame_list]
-                    pool.map(extract_frames_worker, batch_args)
-                    stop = time.time()
-                    time1 = stop - start
-                    self.time1_list.extend(
-                        [time1] * frame_batch_size
-                    )  # Append time1 to the list
-                    frame_list.clear()
+            # Write the image with or without multiprocessing
+            self.write_image_multiprocessing(frame, frame_list, frame_count, remaining_frames, frame_batch_size, pool, frame_paths, unlabelled_path)
 
-            else:
-                start = time.time()
-                cv2.imwrite(frame_path_1, frame, [cv2.IMWRITE_WEBP_QUALITY, 75])
-                stop = time.time()
-                time1 = stop - start
-                self.time1_list.append(time1)  # Append time1 to the list
-
-            # Process the remaining frames using multiprocessing
-            if remaining_frames == 0 and self.USE_MULTIPROCESSING:
-                pool = Pool(processes=len(frame_list))
-                batch_args = [
-                    (data[1], os.path.join(unlabelled_path, f"frame{data[0]}.webp"), 75)
-                    for data in frame_list
-                ]
-                pool.map(extract_frames_worker, batch_args)
-                pool.close()
-                pool.join()
-
-            frame_name = f"frame{frame_count}"
             # Perform detection for the frame
+            frame_name = f"frame{frame_count}"
             start = time.time()
             tracking_output = self.predict(frame)
-            json_output = {frame_name: {}}
-            json_output[frame_name]["image_size"] = [frame.shape[1], frame.shape[0]]
-            json_output[frame_name]["data"] = tracking_output
+            json_output = {
+                frame_name: {
+                    "image_size": [frame.shape[1], frame.shape[0]],
+                    "data": tracking_output
+                }
+            }
             time2 = time.time() - start
             self.time2_list.append(time2)  # Append time2 to the list
 
-            video_name = os.path.splitext(fileName)[0]
-            json_path = os.path.join(workspacePath, video_name, "jsonFolder", f"{os.path.splitext(fileName)[0]}_{frame_name}.json")
-            with open(json_path, "w") as outfile:
-                json.dump(json_output, outfile)
+            # Write the data for the image in a json file
+            self.write_json_file(frame_name, fileName, workspacePath, json_output)
 
             print_progress_bar(self.start_time, frame_count, self.MAX_NUMBER_OF_FRAME)
             # IF progress bar is not fun for you, use this instead
@@ -175,16 +141,80 @@ class Predictor:
 
             frame_count += 1
 
+        # Close everything and display timer stats
+        capture.release()
         if self.USE_MULTIPROCESSING:
             pool.close()
             pool.join()
-
-        capture.release()
         total_time = time.time() - self.start_time
-
         self.print_final_timer_score(total_time)
 
         return self.final_dict
+
+    def verify_path(self, frame_count, unlabelled_path, labelled_path):
+        frame_filename = f"frame{frame_count}.webp"
+        frame_path_1 = os.path.join(unlabelled_path, frame_filename)
+        frame_path_2 = os.path.join(labelled_path, frame_filename)
+        # if os.path.exists(frame_path_1) or os.path.exists(frame_path_2):
+        #     print(f"Frame {frame_count} already exists in one of the paths. Skipping...")
+        #     frame_count += 1
+        #     continue
+        frame_paths = [frame_path_1, frame_path_2]
+        return frame_count, frame_paths
+
+    def write_image_multiprocessing(self, frame, frame_list, frame_count, remaining_frames, frame_batch_size, pool,
+                                    frame_paths, unlabelled_path):
+        # Write the frame local storage using MULTIPROCESSING or SINGLEPROCESSING
+        if self.USE_MULTIPROCESSING:
+            remaining_frames -= 1
+            frame_list.append([frame_count, frame])
+            if len(frame_list) == frame_batch_size:
+                start = time.time()
+                # Process a batch of frames using multiprocessing
+                batch_args = [(data[1], os.path.join(unlabelled_path, f"frame{data[0]}.webp"), 75) for data in
+                              frame_list]
+                pool.map(extract_frames_worker, batch_args)
+                stop = time.time()
+                time1 = stop - start
+                self.time1_list.extend(
+                    [time1] * frame_batch_size
+                )  # Append time1 to the list
+                frame_list.clear()
+        else:
+            start = time.time()
+            cv2.imwrite(frame_paths[0], frame, [cv2.IMWRITE_WEBP_QUALITY, 75])
+            stop = time.time()
+            time1 = stop - start
+            self.time1_list.append(time1)  # Append time1 to the list
+
+        # Process the remaining frames using multiprocessing
+        if remaining_frames == 0 and self.USE_MULTIPROCESSING:
+            pool = Pool(processes=len(frame_list))
+            batch_args = [
+                (data[1], os.path.join(unlabelled_path, f"frame{data[0]}.webp"), 75)
+                for data in frame_list
+            ]
+            pool.map(extract_frames_worker, batch_args)
+            pool.close()
+            pool.join()
+
+    def write_json_file(self, frame_name, fileName, workspacePath, json_output):
+        video_name = os.path.splitext(fileName)[0]
+        new_frame_name = f"{os.path.splitext(fileName)[0]}_{frame_name}.json"
+        json_path = os.path.join(workspacePath, video_name, "jsonFolder", new_frame_name)
+        with open(json_path, "w") as outfile:
+            json.dump(json_output, outfile)
+
+    def write_config_json_file(self, directory, frame_name):
+        file_name = os.path.splitext(frame_name)[0]
+        extension = os.path.splitext(frame_name)[1]
+        file_path = os.path.join(directory, file_name, file_name + "_config.json")
+        try:
+            with open(file_path, 'w') as json_file:
+                json.dump(self.final_dict, json_file, indent=4)
+            print("Config File was created with success")
+        except:
+            print("ERROR CREATING CONFIG FILE")
 
     def print_final_timer_score(self, total_time):
         print("\nTotal Time for Extraction is:", total_time)

@@ -5,7 +5,6 @@ import json
 import os
 from data_config import *
 from Predictor import Predictor
-from extraction import FrameExtractor
 
 
 class Server:
@@ -36,10 +35,8 @@ class Server:
 
                 if task == "splitFile":
                     extension, base_name, frame_name, directory = split_path(folder_path)
-                    final_dict = self.PREDICTOR.extract_frames(base_name, directory)
-                    # Writing Config File
-                    final_dict = {}
-                    final_dict["working"] = True
+                    self.PREDICTOR.extract_frames(base_name, directory)
+                    final_dict = {"working": True}
                     await websocket.send(json.dumps(final_dict))
                     await websocket.close()
 

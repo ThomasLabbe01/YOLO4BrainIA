@@ -5,6 +5,7 @@ import cv2
 import json
 import time
 
+
 def load_yaml_file(file_path):
     with open(file_path, 'r') as file:
         try:
@@ -13,6 +14,16 @@ def load_yaml_file(file_path):
         except yaml.YAMLError as e:
             print(f"Error loading YAML file: {e}")
             return None
+
+
+def order_classes(final_dict):
+    # Sorting keys alphabetically for UI display
+    sorted_classes = dict(sorted(final_dict['classes'].items()))
+    sorted_classesFaded = dict(sorted(final_dict['classesFaded'].items()))
+    final_dict['classes'] = sorted_classes
+    final_dict['classesFaded'] = sorted_classesFaded
+    return final_dict
+
 
 
 def prepare_states(final_dict):
@@ -77,20 +88,6 @@ def generate_color_list(num_colors):
         fade_color_list.append(hex_color)
 
     return color_list, fade_color_list
-
-
-def write_config_json_file(final_dict, directory, frame_name):
-
-    file_name = os.path.splitext(frame_name)[0]
-    extension = os.path.splitext(frame_name)[1]
-    file_path = os.path.join(directory, file_name, file_name + "_config.json")
-    try:
-        with open(file_path, 'w') as json_file:
-            json.dump(final_dict, json_file, indent=4)
-        print("Config File was created with success")
-    except:
-        print("ERROR CREATING CONFIG FILE")
-
 
 def split_path(path):
     extension = os.path.splitext(path)[1]
