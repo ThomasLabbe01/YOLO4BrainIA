@@ -1,13 +1,18 @@
 import os
 import json
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set(style="whitegrid")
+from data_config import *
+
+
 class Quantifier:
     def __init__(self):
-        self.objects = {}
+        self.objects = None
+        self.start_time = 0
 
     def prepare_object_list(self, project_directory):
+        self.objects = {}
         if project_directory[-1] == "/":
             project_directory = project_directory[0:-1]
         config_file_name = os.path.split(project_directory)[-1] + "_config.json"
@@ -17,8 +22,6 @@ class Quantifier:
             classes = config_data["classes"]
             for key, value in classes.items():
                 self.objects[key] = {"occurenceNumber": 0, "occurenceLocation": []}
-
-            print(self.objects)
 
     def quantify(self, project_directory):
         # Loop through all JSON files in the specified directory
@@ -30,11 +33,15 @@ class Quantifier:
                 with open(file_path, 'r') as json_file:
                     json_data = json.load(json_file)
                     classes_data = json_data[frame_name]["data"]
-                    for classe in classes_data:
+                    self.start_time = time.time()
+                    total_num_classe = len(classes_data)
+                    for classe_num, classe in enumerate(classes_data):
                         self.objects[classe]["occurenceNumber"] = self.objects[classe]["occurenceNumber"] + 1
                         self.objects[classe]["occurenceLocation"].append(frame_name)
+                        print_progress_bar(self.start_time, classe_num, total_num_classe)
+                    print_progress_bar(self.start_time, total_num_classe, total_num_classe)
 
-# Example usage:
+
     def plot_occurrence_number(self):
         object_names = list(self.objects.keys())
         occurrence_numbers = [obj_data["occurenceNumber"] for obj_data in self.objects.values()]
@@ -53,13 +60,14 @@ class Quantifier:
             frames = obj_data["occurenceLocation"]
             frame_numbers = [int(frame.split("frame")[-1]) for frame in frames]
             plt.plot(frame_numbers, [obj_name]*len(frame_numbers), 'o', label=obj_name)
-
         plt.xlabel('Frame Number')
         plt.ylabel('Objects')
         plt.title('Spread of Object Detection in Frames')
         plt.legend()
         plt.grid(True)
         plt.show()
+
+
 
 if __name__ == "__main__":
     quantifier = Quantifier()

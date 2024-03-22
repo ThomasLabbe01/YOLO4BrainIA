@@ -3,8 +3,10 @@ import websockets
 import websockets.exceptions
 import json
 import os
+
 from data_config import *
 from Predictor import Predictor
+from Quantifier import Quantifier
 
 
 class Server:
@@ -16,6 +18,7 @@ class Server:
         self.userWorkspacePath = os.path.expandvars("%USERPROFILE%\\Documents\\Brain_Projects")
 
         self.PREDICTOR = Predictor(self.weights_path)
+        self.QUANTIFIER = Quantifier()
 
     async def handler(self, websocket, path):
         print("\n")
@@ -39,6 +42,12 @@ class Server:
                     final_dict = {"working": True}
                     await websocket.send(json.dumps(final_dict))
                     await websocket.close()
+
+                if task == "plotStats":
+                    self.QUANTIFIER.prepare_object_list(folder_path)
+                    self.QUANTIFIER.quantify(folder_path)
+                    self.QUANTIFIER.plot_occurrence_spread()
+                    self.QUANTIFIER.plot_occurrence_number()
 
                 # TODO: call Train_button.py function and see if answer is necessary
                 if task == "trainDataset":
