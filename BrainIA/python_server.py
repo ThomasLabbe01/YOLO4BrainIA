@@ -43,11 +43,10 @@ class Server:
                     await websocket.send(json.dumps(final_dict))
                     await websocket.close()
 
-                if task == "plotStats":
+                if task == "plotOccurenceNumber" or task == "plotSpreadness" or task == "plotOccurenceOverTime":
                     self.QUANTIFIER.prepare_object_list(folder_path)
                     self.QUANTIFIER.quantify(folder_path)
-                    self.QUANTIFIER.plot_occurrence_spread()
-                    self.QUANTIFIER.plot_occurrence_number()
+                    self.QUANTIFIER.plotGraphs(task)
 
                 # TODO: call Train_button.py function and see if answer is necessary
                 if task == "trainDataset":

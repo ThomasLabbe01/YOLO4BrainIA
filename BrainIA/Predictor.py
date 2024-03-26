@@ -18,6 +18,13 @@ def extract_frames_worker(args):
 
 class Predictor:
     def __init__(self, weights_path):
+        # SETTINGS
+        self.CONF_THRESHOLD = 0.05
+        self.MAX_NUMBER_OF_FRAME = 50
+        self.USE_FULL_LENGTH = False
+        self.USE_MULTIPROCESSING = True
+
+        # MODEL
         self.weights_path = weights_path
         self.model_custom = YOLO(self.weights_path)
         self.classes = load_yaml_file(os.path.join(os.path.dirname(os.path.dirname(weights_path)), "combined_config.yaml"))["names"]
@@ -25,12 +32,6 @@ class Predictor:
         self.final_dict = prepare_colors(self.final_dict, self.classes)
         self.final_dict = prepare_states(self.final_dict)
         self.final_dict = order_classes(self.final_dict)
-
-        #SETTINGS
-        self.CONF_THRESHOLD = 0.05
-        self.MAX_NUMBER_OF_FRAME = 50
-        self.USE_FULL_LENGTH = False
-        self.USE_MULTIPROCESSING = True
 
         #FOR BENCHMARKING
         self.start_time = 0
@@ -202,6 +203,7 @@ class Predictor:
         video_name = os.path.splitext(fileName)[0]
         new_frame_name = f"{os.path.splitext(fileName)[0]}_{frame_name}.json"
         json_path = os.path.join(workspacePath, video_name, "jsonFolder", new_frame_name)
+        json_output[frame_name]["confidence_threshold"] = self.CONF_THRESHOLD
         with open(json_path, "w") as outfile:
             json.dump(json_output, outfile)
 
