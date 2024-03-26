@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="vivarium" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="prosthesis" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (prosthesis)" project-jdk-type="Python SDK" />
 </project>

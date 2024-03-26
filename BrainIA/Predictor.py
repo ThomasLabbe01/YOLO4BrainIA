@@ -117,7 +117,7 @@ class Predictor:
             frame_count, frame_paths = self.verify_path(frame_count,unlabelled_path, labelled_path)
 
             # Write the image with or without multiprocessing
-            self.write_image_multiprocessing(frame, frame_list, frame_count, remaining_frames, frame_batch_size, pool, frame_paths, unlabelled_path)
+            remaining_frames = self.write_image_multiprocessing(frame, frame_list, frame_count, remaining_frames, frame_batch_size, pool, frame_paths, unlabelled_path)
 
             # Perform detection for the frame
             frame_name = f"frame{frame_count}"
@@ -198,6 +198,7 @@ class Predictor:
             pool.map(extract_frames_worker, batch_args)
             pool.close()
             pool.join()
+        return remaining_frames
 
     def write_json_file(self, frame_name, fileName, workspacePath, json_output):
         video_name = os.path.splitext(fileName)[0]
